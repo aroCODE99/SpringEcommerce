@@ -1,0 +1,50 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: redis_container
+    ports:
+      - "6379:6379"
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql_container
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$MYSQL_ROOT_PASSWORD\"", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  spring_ecommerce:
+    build: .
+    image: spring-ecommerce:latest
+    container_name: spring_container
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_CACHE_TYPE: redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      LOGGING_LEVEL_ROOT: info
+      JWT_SECRET: kebf4y3d/akjsq9sfexa1jd5d2my0uimbkqqi3ft6n22vzd6ffr3liyld9byyvncqmypfukj6cuzu434jjr9aw==
+      JWT_EXPIRES_IN: 86400
+      APP_NAME: Ecommerce-starter
+    ports:
+      - "8080:8080"
+    develop:
+      watch:
+        - action: rebuild
+          path: ./src
+    depends_on:
+      redis:
+        condition: service_started
+      mysql:
+        condition: service_healthy
